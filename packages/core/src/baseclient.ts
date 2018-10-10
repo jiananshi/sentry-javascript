@@ -1,6 +1,7 @@
 import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
+  Integration,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
@@ -14,6 +15,7 @@ import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
+import { IntegrationIndex, setupIntegrations } from './integrations';
 import { Backend, Client, Options } from './interfaces';
 import { logger } from './logger';
 
@@ -127,6 +129,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   private installed?: boolean;
 
+  /** Array of used integrations. */
+  private integrations?: IntegrationIndex;
+
   /**
    * Initializes this client instance.
    *
@@ -140,6 +145,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (options.dsn) {
       this.dsn = new Dsn(options.dsn);
     }
+
+    this.integrations = setupIntegrations(options);
   }
 
   /**
@@ -414,5 +421,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this.getBackend()
       .getBuffer()
       .drain(timeout);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getIntegration(name: string): Integration | null {
+    return (this.integrations && this.integrations[name]) || null;
   }
 }
